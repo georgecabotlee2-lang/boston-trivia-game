@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Boston Pulse Trivia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #08131e;
+      --bg-mid: #102337;
+      --accent-red: #c6283e;
+      --accent-gold: #f2bc5a;
+      --card: rgba(9, 24, 39, 0.84);
+      --card-border: rgba(242, 188, 90, 0.26);
+      --text-main: #f2f6fb;
+      --text-muted: #bad0e6;
+      --correct: #2db17e;
+      --wrong: #d65a5a;
+      --glow: 0 18px 50px rgba(8, 19, 30, 0.52);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text-main);
+      font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
+      background:
+        radial-gradient(circle at 15% 12%, rgba(198, 40, 62, 0.24), transparent 48%),
+        radial-gradient(circle at 85% 6%, rgba(242, 188, 90, 0.2), transparent 42%),
+        linear-gradient(135deg, var(--bg-deep), var(--bg-mid) 52%, #0f1b2c);
+      overflow-x: hidden;
+      padding: 24px;
+    }
+
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(circle at center, black, transparent 85%);
+    }
+
+    .app {
+      width: min(960px, 100%);
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      box-shadow: var(--glow);
+      backdrop-filter: blur(8px);
+      overflow: hidden;
+      animation: rise 500ms ease;
+    }
+
+    @keyframes rise {
+      from { transform: translateY(16px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .header {
+      padding: 28px 28px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+      background: linear-gradient(120deg, rgba(198, 40, 62, 0.24), rgba(16, 35, 55, 0.35) 58%, rgba(242, 188, 90, 0.12));
+    }
+
+    .title {
+      margin: 0;
+      font-family: "Archivo Black", Impact, sans-serif;
+      letter-spacing: 0.04em;
+      font-size: clamp(1.65rem, 5vw, 2.6rem);
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      color: var(--text-muted);
+      font-size: clamp(0.92rem, 2.8vw, 1.05rem);
+    }
+
+    .content {
+      padding: 24px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 13px;
+      font-size: 0.88rem;
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .difficulty-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .difficulty-label {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .difficulty-select {
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      padding: 7px 30px 7px 12px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .difficulty-select:focus {
+      outline: 2px solid rgba(242, 188, 90, 0.6);
+      outline-offset: 1px;
+    }
+
+    .progress-wrap {
+      width: 100%;
+      margin: 8px 0 18px;
+    }
+
+    .progress-track {
+      height: 11px;
+      background: rgba(255, 255, 255, 0.09);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0;
+      transition: width 320ms ease;
+      background: linear-gradient(90deg, var(--accent-red), var(--accent-gold));
+      box-shadow: 0 0 16px rgba(242, 188, 90, 0.35);
+    }
+
+    .question-card {
+      padding: clamp(18px, 4vw, 28px);
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: linear-gradient(160deg, rgba(16, 35, 55, 0.75), rgba(7, 17, 30, 0.9));
+      min-height: 178px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      margin-bottom: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .question-card::after {
+      content: "";
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      top: -64px;
+      right: -54px;
+      background: radial-gradient(circle at center, rgba(242, 188, 90, 0.28), transparent 74%);
+      pointer-events: none;
+    }
+
+    .category-label {
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--accent-gold);
+      font-size: 0.75rem;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .question-text {
+      margin: 0;
+      font-size: clamp(1.05rem, 3.3vw, 1.4rem);
+      line-height: 1.4;
+      max-width: 70ch;
+    }
+
+    .choices {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr;
+      margin-bottom: 16px;
+    }
+
+    .choice-btn {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      font-size: 1rem;
+      padding: 13px 14px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+    }
+
+    .choice-btn:hover:enabled {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.32);
+    }
+
+    .choice-btn.correct {
+      background: rgba(45, 177, 126, 0.2);
+      border-color: rgba(45, 177, 126, 0.85);
+    }
+
+    .choice-btn.wrong {
+      background: rgba(214, 90, 90, 0.22);
+      border-color: rgba(214, 90, 90, 0.9);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .feedback {
+      min-height: 24px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .feedback.good {
+      color: #83e6be;
+    }
+
+    .feedback.bad {
+      color: #ff9f9f;
+    }
+
+    .next-btn,
+    .restart-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 18px;
+      color: #101a2b;
+      background: linear-gradient(100deg, var(--accent-gold), #ffe5a7);
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 140ms ease;
+      font-size: 0.95rem;
+    }
+
+    .next-btn:hover,
+    .restart-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .next-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .score-card {
+      display: none;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: linear-gradient(180deg, rgba(242, 188, 90, 0.12), rgba(255, 255, 255, 0.03));
+      padding: 20px;
+    }
+
+    .score-title {
+      margin: 0 0 8px;
+      font-family: "Archivo Black", Impact, sans-serif;
+      letter-spacing: 0.03em;
+      font-size: 1.5rem;
+      text-transform: uppercase;
+    }
+
+    .score-line {
+      margin: 0 0 14px;
+      color: var(--text-muted);
+    }
+
+    .score-value {
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      color: var(--accent-gold);
+      font-weight: 700;
+      margin: 0 0 14px;
+    }
+
+    .streak {
+      margin: 0 0 18px;
+      color: var(--text-main);
+      font-size: 0.98rem;
+    }
+
+    .footer {
+      margin-top: 14px;
+      color: var(--text-muted);
+      font-size: 0.84rem;
+    }
+
+    @media (max-width: 620px) {
+      body {
+        padding: 12px;
+      }
+
+      .header,
+      .content {
+        padding: 16px;
+      }
+
+      .actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .difficulty-control {
+        width: 100%;
+        justify-content: space-between;
+        margin-left: 0;
+      }
+
+      .next-btn,
+      .restart-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"></div>
+  <main class="app" role="main">
+    <header class="header">
+      <h1 class="title">Boston Pulse Trivia</h1>
+      <p class="subtitle">Test your knowledge of Boston history across sports, culture, business, and politics.</p>
+    </header>
+
+    <section class="content">
+      <div class="row">
+        <span class="pill" id="scorePill">Score: 0</span>
+        <span class="pill" id="questionPill">Question 1/16</span>
+        <span class="pill" id="accuracyPill">Accuracy: 0%</span>
+        <div class="difficulty-control">
+          <label class="difficulty-label" for="difficultySelect">Difficulty</label>
+          <select class="difficulty-select" id="difficultySelect" aria-label="Select difficulty">
+            <option value="hard" selected>Hard</option>
+            <option value="expert">Expert</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="progress-wrap" aria-hidden="true">
+        <div class="progress-track">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+      </div>
+
+      <div id="quizPane">
+        <article class="question-card">
+          <div class="category-label" id="categoryLabel"></div>
+          <p class="question-text" id="questionText"></p>
+        </article>
+
+        <div class="choices" id="choices"></div>
+
+        <div class="actions">
+          <div class="feedback" id="feedback"></div>
+          <button class="next-btn" id="nextBtn" disabled>Next Question</button>
+        </div>
+      </div>
+
+      <section class="score-card" id="scoreCard">
+        <h2 class="score-title">Final Score</h2>
+        <p class="score-line" id="scoreLine">You wrapped this round.</p>
+        <p class="score-value" id="scoreValue"></p>
+        <p class="streak" id="streakText"></p>
+        <button class="restart-btn" id="restartBtn">Play Again</button>
+      </section>
+
+      <p class="footer">Facts are historical and educational; phrasing is simplified for game-play.</p>
+    </section>
+  </main>
+
+  <script>
+    const allQuestions = [
+      { category: "Sports", level: "hard", question: "Which Red Sox pitcher started and won Game 7 of the 2004 ALCS against the Yankees?", choices: ["Curt Schilling", "Pedro Martinez", "Derek Lowe", "Tim Wakefield"], answer: 2 },
+      { category: "Sports", level: "hard", question: "Boston's original NHL team, founded in 1924, is known as the:", choices: ["Boston Blades", "Boston Bruins", "Boston Mariners", "Boston Harbors"], answer: 1 },
+      { category: "Sports", level: "hard", question: "The Green Monster at Fenway Park is located in which field?", choices: ["Center field", "Right field", "Left field", "Foul territory"], answer: 2 },
+      { category: "Sports", level: "hard", question: "Which Boston College quarterback later won multiple Super Bowls with the Patriots?", choices: ["Doug Flutie", "Matt Ryan", "Tom Brady", "Brian St. Pierre"], answer: 2 },
+      { category: "Sports", level: "hard", question: "Which Boston arena opened in 1995 as the replacement for the old Boston Garden?", choices: ["FleetCenter", "TD North Hall", "Harbor Arena", "New Garden Pavilion"], answer: 0 },
+      { category: "Sports", level: "hard", question: "Who coached the Celtics to 11 NBA titles?", choices: ["Red Auerbach", "Tom Heinsohn", "K.C. Jones", "Brad Stevens"], answer: 0 },
+      { category: "Sports", level: "hard", question: "In the Patriots' first Super Bowl win (2001 season), who kicked the game-winning field goal?", choices: ["Adam Vinatieri", "Stephen Gostkowski", "Martin Gramatica", "Mike Vanderjagt"], answer: 0 },
+      { category: "Sports", level: "hard", question: "Which Boston Marathon segment is the notorious uphill challenge near Newton?", choices: ["Beacon Rise", "Heartbreak Hill", "Copley Climb", "Commonwealth Crest"], answer: 1 },
+      { category: "Sports", level: "hard", question: "Before moving to Los Angeles, the NBA's Clippers franchise was originally the:", choices: ["Boston Celtics West", "Buffalo Braves", "San Diego Rockets", "Baltimore Bullets"], answer: 1 },
+      { category: "Sports", level: "hard", question: "Which university hosts the annual Harvard-Yale football game when in Boston?", choices: ["Northeastern", "MIT", "Harvard", "Boston University"], answer: 2 },
+      { category: "Sports", level: "expert", question: "Which Red Sox player won the 1967 AL MVP during Boston's 'Impossible Dream' season?", choices: ["Carl Yastrzemski", "Tony Conigliaro", "Rico Petrocelli", "Reggie Smith"], answer: 0 },
+      { category: "Sports", level: "expert", question: "Boston's first NBA championship came in which year?", choices: ["1952", "1957", "1960", "1963"], answer: 1 },
+      { category: "Sports", level: "expert", question: "Which Bruins legend was nicknamed 'The Golden Jet'?", choices: ["Phil Esposito", "Ray Bourque", "Bobby Orr", "Cam Neely"], answer: 2 },
+      { category: "Sports", level: "expert", question: "What was the name of the ballpark the Red Sox used before moving to Fenway?", choices: ["Huntington Grounds", "South End Oval", "Jesse Burkett Grounds", "New England Field"], answer: 2 },
+      { category: "Sports", level: "expert", question: "Which Celtics player won eight straight NBA titles from 1959 to 1966 as a player?", choices: ["Sam Jones", "Bob Cousy", "Bill Russell", "Tom Sanders"], answer: 2 },
+
+      { category: "Culture", level: "hard", question: "Which Boston neighborhood is known for its narrow streets and historic Italian-American community?", choices: ["North End", "Back Bay", "South Boston", "Allston"], answer: 0 },
+      { category: "Culture", level: "hard", question: "The Museum of Fine Arts, Boston was founded in:", choices: ["1848", "1870", "1901", "1924"], answer: 1 },
+      { category: "Culture", level: "hard", question: "Which landmark public park is part of Boston's 'Emerald Necklace'?", choices: ["Prospect Park", "Boston Common", "Rittenhouse Square", "Battery Park"], answer: 1 },
+      { category: "Culture", level: "hard", question: "What is the name of the 2.5-mile walking route linking 16 revolutionary-era sites in Boston?", choices: ["Liberty Walk", "Patriot Line", "Freedom Trail", "Revolution Route"], answer: 2 },
+      { category: "Culture", level: "hard", question: "Which Boston public library branch is notable for its Renaissance Revival architecture in Copley Square?", choices: ["Johnson Building", "McKim Building", "Adams Building", "Athenaeum Hall"], answer: 1 },
+      { category: "Culture", level: "hard", question: "Boston's annual Caribbean Carnival is centered in which neighborhood?", choices: ["Dorchester", "Roxbury", "Mattapan", "South End"], answer: 3 },
+      { category: "Culture", level: "hard", question: "Which poet, associated with Boston, wrote 'Paul Revere's Ride'?", choices: ["John Greenleaf Whittier", "Henry Wadsworth Longfellow", "Ralph Waldo Emerson", "Oliver Wendell Holmes Sr."], answer: 1 },
+      { category: "Culture", level: "hard", question: "Which university museum in Cambridge houses major anthropological collections and the Glass Flowers?", choices: ["Peabody Museum at Harvard", "MIT Museum", "Isabella Stewart Gardner Annex", "Semitic Museum at BU"], answer: 0 },
+      { category: "Culture", level: "expert", question: "Which Boston-born architect designed Trinity Church in Copley Square?", choices: ["Charles Bulfinch", "Henry Hobson Richardson", "Ralph Adams Cram", "Stanford White"], answer: 1 },
+      { category: "Culture", level: "expert", question: "The Boston Athenaeum was founded in which decade?", choices: ["1780s", "1800s", "1830s", "1860s"], answer: 1 },
+      { category: "Culture", level: "expert", question: "Which abolitionist publication, founded in Boston in 1831 by William Lloyd Garrison, was called:", choices: ["The Liberator", "The Emancipator", "Freedom Ledger", "The Northern Star"], answer: 0 },
+      { category: "Culture", level: "expert", question: "Who founded the Isabella Stewart Gardner Museum's collection by creating a Venetian-style palace in Fenway?", choices: ["Louisa May Alcott", "Isabella Stewart Gardner", "Abby Aldrich Rockefeller", "Julia Ward Howe"], answer: 1 },
+      { category: "Culture", level: "expert", question: "Which Boston neighborhood became synonymous with 19th-century Brahmin culture?", choices: ["Beacon Hill", "Jamaica Plain", "Charlestown", "East Boston"], answer: 0 },
+
+      { category: "Business", level: "hard", question: "Which Boston-founded mutual fund giant, launched by Edward C. Johnson II, is headquartered in the city?", choices: ["Vanguard", "Fidelity Investments", "T. Rowe Price", "Charles Schwab"], answer: 1 },
+      { category: "Business", level: "hard", question: "Logan International Airport is located in which Boston neighborhood?", choices: ["Charlestown", "East Boston", "Dorchester", "Seaport"], answer: 1 },
+      { category: "Business", level: "hard", question: "The Big Dig primarily rerouted which major interstate through central Boston?", choices: ["I-95", "I-90", "I-93", "Route 128"], answer: 2 },
+      { category: "Business", level: "hard", question: "Which Boston institution helped make the city a global center of higher-ed talent and commercialization?", choices: ["Federal Reserve Bank of Boston", "Harvard and MIT", "Port of Boston Authority", "Mass Bay Transit Board"], answer: 1 },
+      { category: "Business", level: "hard", question: "Which district transformed from rail yards into a modern mixed-use development including office and retail space?", choices: ["Assembly Row", "Back Bay", "South Bay", "Post Office Square"], answer: 1 },
+      { category: "Business", level: "hard", question: "Which company, founded in Massachusetts and long based in Boston, created the first spreadsheet software VisiCalc's commercial successor Lotus 1-2-3 ecosystem in the region?", choices: ["Digital Equipment Corporation", "Lotus Development Corporation", "Wang Laboratories", "Polaroid"], answer: 1 },
+      { category: "Business", level: "hard", question: "What is the name of Boston's convention center in the Seaport District?", choices: ["Hynes Pavilion", "BCEC", "MassTrade Hall", "Harbor Expo Center"], answer: 1 },
+      { category: "Business", level: "hard", question: "Boston's Route 128 corridor became famous in the late 20th century for what?", choices: ["Textile mills", "Technology and defense firms", "Fishing cooperatives", "Automobile assembly"], answer: 1 },
+      { category: "Business", level: "expert", question: "Which 19th-century Boston merchant family helped define the China Trade and East India wharf commerce?", choices: ["Cabots", "Forbes family", "Lowells", "Lodges"], answer: 1 },
+      { category: "Business", level: "expert", question: "Which Boston-born company popularized instant photography and once employed thousands in Massachusetts?", choices: ["Kodak", "Polaroid", "Xerox", "Bell & Howell"], answer: 1 },
+      { category: "Business", level: "expert", question: "In early U.S. industrialization, Boston capital heavily financed textile mills in which Massachusetts city?", choices: ["Springfield", "Lowell", "Gloucester", "Plymouth"], answer: 1 },
+      { category: "Business", level: "expert", question: "Which railroad terminal area was redeveloped into today's high-rise district around South Station and Fort Point channels?", choices: ["West End", "Downtown Crossing", "Dewey Square", "Financial District East"], answer: 2 },
+      { category: "Business", level: "expert", question: "Which Boston institution, created in 1914, serves as a regional bank within the U.S. central banking system?", choices: ["Massachusetts Treasury Bank", "Federal Reserve Bank of Boston", "Atlantic Reserve Authority", "New England Monetary Board"], answer: 1 },
+
+      { category: "Politics", level: "hard", question: "Who was the Boston silversmith and patriot associated with the midnight ride warning in 1775?", choices: ["Paul Revere", "Samuel Adams", "John Hancock", "Joseph Warren"], answer: 0 },
+      { category: "Politics", level: "hard", question: "Which Bostonian was the first signer of the Declaration of Independence?", choices: ["John Adams", "John Hancock", "Samuel Adams", "James Otis"], answer: 1 },
+      { category: "Politics", level: "hard", question: "The Massachusetts State House was designed by which architect?", choices: ["Charles Bulfinch", "H.H. Richardson", "Asher Benjamin", "Robert Mills"], answer: 0 },
+      { category: "Politics", level: "hard", question: "Which protest slogan was popularized in Boston during resistance to British taxation?", choices: ["Vote and Liberty", "No Tax on Tea", "No taxation without representation", "Liberty through Trade"], answer: 2 },
+      { category: "Politics", level: "hard", question: "Which Boston meetinghouse became a key site for pre-Revolution organizing and speeches?", choices: ["Faneuil Hall", "King's Chapel", "Old South Meeting House", "Park Street Church"], answer: 2 },
+      { category: "Politics", level: "hard", question: "Who served as Boston mayor before becoming U.S. Secretary of Labor and later Governor of Massachusetts?", choices: ["Kevin White", "Marty Walsh", "Thomas Menino", "Ray Flynn"], answer: 1 },
+      { category: "Politics", level: "hard", question: "Which 1970s federal court case drove school desegregation busing in Boston?", choices: ["Swann v. Charlotte-Mecklenburg", "Brown v. Board of Education", "Morgan v. Hennigan", "Milliken v. Bradley"], answer: 2 },
+      { category: "Politics", level: "hard", question: "Which Boston neighborhood was central to intense opposition during 1970s busing protests?", choices: ["Beacon Hill", "South Boston", "Back Bay", "Jamaica Plain"], answer: 1 },
+      { category: "Politics", level: "expert", question: "Which 1765 gathering in Boston protested the Stamp Act and helped coordinate colonial resistance?", choices: ["First Continental Congress", "Stamp Act Congress", "Suffolk Convention", "Massachusetts Circular Congress"], answer: 1 },
+      { category: "Politics", level: "expert", question: "Who delivered the famous annual commemorative orations in Boston around the anniversary of the Boston Massacre, later becoming U.S. president?", choices: ["Thomas Jefferson", "John Adams", "John Quincy Adams", "James Madison"], answer: 1 },
+      { category: "Politics", level: "expert", question: "Which revolutionary leader was mortally wounded at Bunker Hill after organizing resistance in Boston?", choices: ["Israel Putnam", "Joseph Warren", "Nathanael Greene", "Artemas Ward"], answer: 1 },
+      { category: "Politics", level: "expert", question: "Boston was the seat of agitation against which 1774 punitive laws known collectively as:", choices: ["Townshend Acts", "Intolerable Acts", "Navigation Codes", "Declaratory Acts"], answer: 1 },
+      { category: "Politics", level: "expert", question: "Which Massachusetts governor from Boston later became U.S. presidential candidate in 1988?", choices: ["Michael Dukakis", "Paul Cellucci", "William Weld", "Deval Patrick"], answer: 0 }
+    ];
+
+    const difficultyConfig = {
+      hard: { label: "Hard", count: 16, levels: ["hard"] },
+      expert: { label: "Expert", count: 20, levels: ["hard", "expert"] }
+    };
+
+    function shuffle(items) {
+      const arr = [...items];
+      for (let i = arr.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    const questionText = document.getElementById("questionText");
+    const categoryLabel = document.getElementById("categoryLabel");
+    const choicesEl = document.getElementById("choices");
+    const feedbackEl = document.getElementById("feedback");
+    const nextBtn = document.getElementById("nextBtn");
+    const scorePill = document.getElementById("scorePill");
+    const questionPill = document.getElementById("questionPill");
+    const accuracyPill = document.getElementById("accuracyPill");
+    const progressBar = document.getElementById("progressBar");
+    const quizPane = document.getElementById("quizPane");
+    const scoreCard = document.getElementById("scoreCard");
+    const scoreLine = document.getElementById("scoreLine");
+    const scoreValue = document.getElementById("scoreValue");
+    const streakText = document.getElementById("streakText");
+    const restartBtn = document.getElementById("restartBtn");
+    const difficultySelect = document.getElementById("difficultySelect");
+
+    let questions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let answered = 0;
+    let streak = 0;
+    let bestStreak = 0;
+    let activeDifficulty = "hard";
+
+    function buildQuestionSet() {
+      const cfg = difficultyConfig[activeDifficulty];
+      const pool = allQuestions.filter((q) => cfg.levels.includes(q.level));
+      return shuffle(pool).slice(0, Math.min(cfg.count, pool.length));
+    }
+
+    function initGame() {
+      questions = buildQuestionSet();
+      currentIndex = 0;
+      score = 0;
+      answered = 0;
+      streak = 0;
+      bestStreak = 0;
+      quizPane.style.display = "block";
+      scoreCard.style.display = "none";
+      renderQuestion();
+      refreshHeader();
+    }
+
+    function refreshHeader() {
+      scorePill.textContent = `Score: ${score}`;
+      questionPill.textContent = `Question ${Math.min(currentIndex + 1, questions.length)}/${questions.length}`;
+      const accuracy = answered ? Math.round((score / answered) * 100) : 0;
+      accuracyPill.textContent = `Accuracy: ${accuracy}%`;
+      progressBar.style.width = `${(currentIndex / questions.length) * 100}%`;
+    }
+
+    function renderQuestion() {
+      const item = questions[currentIndex];
+      categoryLabel.textContent = `${item.category} · ${item.level}`;
+      questionText.textContent = item.question;
+      feedbackEl.textContent = "";
+      feedbackEl.className = "feedback";
+      nextBtn.disabled = true;
+      choicesEl.innerHTML = "";
+
+      item.choices.forEach((choice, idx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "choice-btn";
+        btn.textContent = choice;
+        btn.addEventListener("click", () => handleChoice(idx));
+        choicesEl.appendChild(btn);
+      });
+
+      refreshHeader();
+    }
+
+    function lockChoices() {
+      Array.from(choicesEl.children).forEach((btn) => {
+        btn.disabled = true;
+      });
+    }
+
+    function handleChoice(choiceIndex) {
+      const item = questions[currentIndex];
+      const buttons = Array.from(choicesEl.children);
+      if (nextBtn.disabled === false) {
+        return;
+      }
+
+      answered += 1;
+      lockChoices();
+      buttons[item.answer].classList.add("correct");
+
+      if (choiceIndex === item.answer) {
+        score += 1;
+        streak += 1;
+        bestStreak = Math.max(bestStreak, streak);
+        feedbackEl.textContent = "Correct. Strong pull from Boston history.";
+        feedbackEl.classList.add("good");
+      } else {
+        streak = 0;
+        buttons[choiceIndex].classList.add("wrong");
+        feedbackEl.textContent = `Not quite. Correct answer: ${item.choices[item.answer]}.`;
+        feedbackEl.classList.add("bad");
+      }
+
+      nextBtn.disabled = false;
+      refreshHeader();
+    }
+
+    function showFinal() {
+      const cfg = difficultyConfig[activeDifficulty];
+      quizPane.style.display = "none";
+      scoreCard.style.display = "block";
+      progressBar.style.width = "100%";
+      scoreLine.textContent = `You wrapped a ${cfg.label.toLowerCase()} round with ${questions.length} questions.`;
+
+      const percent = Math.round((score / questions.length) * 100);
+      scoreValue.textContent = `${score} / ${questions.length} (${percent}%)`;
+
+      if (percent >= 85) {
+        streakText.textContent = `Elite run. Best streak: ${bestStreak}.`;
+      } else if (percent >= 65) {
+        streakText.textContent = `Strong showing. Best streak: ${bestStreak}.`;
+      } else {
+        streakText.textContent = `Tough set. Best streak: ${bestStreak}. Run it again and climb.`;
+      }
+
+      scorePill.textContent = `Score: ${score}`;
+      questionPill.textContent = `Question ${questions.length}/${questions.length}`;
+      accuracyPill.textContent = `Accuracy: ${percent}%`;
+    }
+
+    nextBtn.addEventListener("click", () => {
+      currentIndex += 1;
+      if (currentIndex >= questions.length) {
+        showFinal();
+        return;
+      }
+      renderQuestion();
+    });
+
+    restartBtn.addEventListener("click", initGame);
+    difficultySelect.addEventListener("change", (event) => {
+      activeDifficulty = event.target.value;
+      initGame();
+    });
+
+    initGame();
+  </script>
+</body>
+</html>
